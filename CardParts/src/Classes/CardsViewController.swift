@@ -36,8 +36,8 @@ struct CardInfo: Equatable {
 	}
 }
 
-open class CardsViewController : UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UIScrollViewDelegate {
-	
+open class CardsViewController : UIViewController, UICollectionViewDataSource, UICollectionViewDelegate, UIScrollViewDelegate, UICollectionViewDelegateFlowLayout {
+    
     let cardCellWidth = BehaviorRelay(value: CGFloat(0))
     let editButtonOffset : CGFloat = 24
     let editButtonHeight : CGFloat = 50
@@ -48,12 +48,14 @@ open class CardsViewController : UIViewController, UICollectionViewDataSource, U
     public var cardCellMargins : UIEdgeInsets = CardParts.theme.cardCellMargins
 
     var cardControllers = [CardInfo]()
-	var bag = DisposeBag()
+    var headerCardInfo: CardInfo?
+    var bag = DisposeBag()
     
     // previous scrollview bounds
     var lastScrollViewBounds: CGRect?
     
     let kCardCellIndentifier = "CardCell"
+    fileprivate let headerIdentifier = "HeaderCardCell"
     public var collectionView : UICollectionView!
     var layout : UICollectionViewFlowLayout!
     
@@ -70,13 +72,14 @@ open class CardsViewController : UIViewController, UICollectionViewDataSource, U
 		}
 		layout.minimumLineSpacing = CardParts.theme.cardsLineSpacing
 		layout.scrollDirection = .vertical
+        layout.sectionHeadersPinToVisibleBounds = true
         
         collectionView = UICollectionView(frame: self.view.bounds, collectionViewLayout: layout)
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.delegate = self
 
         collectionView.backgroundColor = UIColor.color(245, green: 245, blue: 245)
-//        collectionView.register(CardCell.self, forCellWithReuseIdentifier: kCardCellIndentifier)
+        collectionView.register(CardCell.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerIdentifier)
         collectionView.dataSource = self
 		let insets = UIEdgeInsets(top: CardParts.theme.cardsViewContentInsetTop, left: 0, bottom: (tabBarController?.tabBar.bounds.size.height ?? 0) + layout.minimumLineSpacing * 2, right: 0)
         collectionView.contentInset = insets
@@ -118,14 +121,21 @@ open class CardsViewController : UIViewController, UICollectionViewDataSource, U
         }
     }
 
-	public func loadCards(cards:[CardController]) {
-		setCardControllers(cards: cards)
-		
-		registerCells(cards: cards)
-		
-		collectionView.reloadData()
-		collectionView.collectionViewLayout.invalidateLayout()
-	}
+    public func loadCards(cards:[CardController], headerCard: CardController? = nil) {
+        setCardControllers(cards: cards)
+        registerCells(cards: cards)
+        
+        if let headerCard = headerCard {
+            headerCardInfo = CardInfo(card: headerCard, position: 999)
+            if let headerView = headerCardInfo?.cardController.viewController().view {
+                let viewSize = headerView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+                layout.headerReferenceSize = CGSize(width: collectionView.frame.size.width, height: viewSize.height)
+            }
+        }
+        
+        collectionView.reloadData()
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
     
     /// Method provides option to reload cards based on the indexPaths row and sections of collectionView.
     /// - Parameters:
@@ -259,6 +269,48 @@ open class CardsViewController : UIViewController, UICollectionViewDataSource, U
 		cell.cardContentView.layoutIfNeeded()
 		cell.cardContentView.updateConstraints()
 		return cell
+    }
+    
+    public func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        if kind == UICollectionView.elementKindSectionHeader {
+            guard let headerCardCell = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerIdentifier, for: indexPath) as? CardCell else {
+                return UICollectionReusableView()
+            }
+            
+            guard let cardController = headerCardInfo?.cardController else { return UICollectionReusableView() }
+            let viewController = cardController.viewController()
+                       
+            headerCardCell.cardContentView.subviews.forEach { $0.removeFromSuperview() }
+            viewController.view.removeFromSuperview()
+            
+            let hasParent = viewController.parent != nil
+            if !hasParent {
+                addChild(viewController)
+            }
+            
+            headerCardCell.cardContentView.addSubview(viewController.view)
+            viewController.view.translatesAutoresizingMaskIntoConstraints = false
+            
+            if !hasParent {
+                viewController.didMove(toParent: self)
+            }
+            
+           let metrics = ["cardContentWidth": collectionView.frame.width]
+
+            headerCardCell.cardContentView.removeConstraints(headerCardCell.cardContentConstraints)
+            headerCardCell.cardContentConstraints.removeAll()
+            
+            headerCardCell.cardContentConstraints.append(contentsOf:NSLayoutConstraint.constraints(withVisualFormat: "H:|[view(cardContentWidth)]|", options: [], metrics: metrics, views: ["view" : viewController.view!]))
+            headerCardCell.cardContentConstraints.append(contentsOf:NSLayoutConstraint.constraints(withVisualFormat: "V:|[view]|", options: [], metrics: nil, views: ["view" : viewController.view!]))
+
+            headerCardCell.cardContentView.addConstraints(headerCardCell.cardContentConstraints)
+
+            headerCardCell.cardContentView.layoutIfNeeded()
+            headerCardCell.cardContentView.updateConstraints()
+            
+            return headerCardCell
+        }
+        return UICollectionReusableView()
     }
 	
     func setupConstraints(_ cell: CardCell, viewController: UIViewController) {
