@@ -79,7 +79,7 @@ open class CardsViewController : UIViewController, UICollectionViewDataSource, U
         collectionView.delegate = self
 
         collectionView.backgroundColor = UIColor.color(245, green: 245, blue: 245)
-        collectionView.register(CardCell.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerIdentifier)
+        collectionView.register(CardHeaderCell.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: headerIdentifier)
         collectionView.dataSource = self
 		let insets = UIEdgeInsets(top: CardParts.theme.cardsViewContentInsetTop, left: 0, bottom: (tabBarController?.tabBar.bounds.size.height ?? 0) + layout.minimumLineSpacing * 2, right: 0)
         collectionView.contentInset = insets
@@ -273,7 +273,7 @@ open class CardsViewController : UIViewController, UICollectionViewDataSource, U
     
     public func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         if kind == UICollectionView.elementKindSectionHeader {
-            guard let headerCardCell = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerIdentifier, for: indexPath) as? CardCell else {
+            guard let headerCardCell = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: headerIdentifier, for: indexPath) as? CardHeaderCell else {
                 return UICollectionReusableView()
             }
             
