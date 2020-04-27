@@ -57,13 +57,12 @@ open class CardHeaderCell : UICollectionReusableView {
     
     override open var bounds: CGRect {
         didSet {
-            self.frame = bounds
             gradientLayer.frame = self.bounds
         }
     }
     
     override open func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
-        
+
         let desiredHeight: CGFloat = self.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
         let desiredWidth: CGFloat = self.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).width
 
@@ -75,9 +74,5 @@ open class CardHeaderCell : UICollectionReusableView {
             return attr
         }
         return layoutAttributes
-    }
-    
-    override open func updateConstraints() {
-        super.updateConstraints()
     }
 }
